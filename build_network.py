@@ -4,11 +4,12 @@
     Expects: (existence of) files graphs/<hashtag>/nodes{1,2,3}.csv
     Output: Files graphs/<hashtag>/edges3.csv containing edge lists for each network
 """
-import sys, os
+import sys, os, json
 from collections import defaultdict
 
 NUM_LINES = 284884514
 CACHE_LIMIT = 100000
+NUM_WINDOWS = 10
 
 # Node and edge sets
 nodes_for_hashtag = defaultdict(set)
@@ -17,7 +18,7 @@ edges_for_hashtag = defaultdict(set)
 def flush_cache():
     print >> sys.stderr, "Flushing edges"
     for hashtag in hashtags:
-        with open("graphs/%s/edges3.csv" % hashtag, 'a') as e:
+        with open("graphs/%s/all_edges.csv" % hashtag, 'a') as e:
             e.write("\n".join(edges_for_hashtag[hashtag]))
     edges_for_hashtag.clear()
 
@@ -30,10 +31,11 @@ with open(sys.argv[1], 'r') as f:
 
 # Build node sets for each hashtag
 for hashtag in hashtags:
-    with open("graphs/%s/nodes3.csv" % hashtag, 'r') as f:
-        nodes_for_hashtag[hashtag] = set(map(lambda x: x.strip(), f.readlines()))
+    for i in xrange(NUM_WINDOWS):
+        with open("graphs/%s/nodes%d.csv" % (hashtag, i+1), 'r') as f:
+            nodes_for_hashtag[hashtag].update(set(map(lambda x: x.strip(), f.readlines())))
     # Clear previous contents of edge sets
-    with open("graphs/%s/edges3.csv" % hashtag, 'w') as f:
+    with open("graphs/%s/all_edges.csv" % hashtag, 'w') as f:
         pass
 
 
@@ -55,3 +57,5 @@ with open("big_data/network.txt", 'r') as f:
 
         if (get_cache_size() > CACHE_LIMIT):
             flush_cache()
+
+flush_cache()
